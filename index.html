@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Expense Tracker | แอพบันทึกรายรับ-รายจ่าย</title>
+  <meta name="description" content="แอพพลิเคชันบันทึกรายรับ-รายจ่าย วางแผนการเงิน สแกนสลิปอัตโนมัติ และวิเคราะห์สถิติ สไตล์โมเดิร์นคลีน">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+  
+  <!-- Google Fonts: Prompt & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=Prompt:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons & Chart.js & Confetti CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <!-- Tesseract.js for Bank Slip OCR -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <!-- SheetJS & jsPDF for Excel/PDF export -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-surface">
+  <div id="app" class="app-root">
+    
+    <!-- Top Global App Bar (For Desktop & Tablet View) -->
+    <header class="desktop-header">
+      <div class="header-container">
+        <div class="brand-group">
+          <div class="brand-logo">
+            <i data-lucide="wallet-cards" class="logo-icon"></i>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">NongOm</span>
+            <span class="brand-subtitle">Smart Spending</span>
+          </div>
+        </div>
+
+        <nav class="desktop-nav">
+          <button class="nav-item active" data-tab="guide">
+            <i data-lucide="sparkles"></i> <span>เกี่ยวกับเรา & วิธีใช้งาน</span>
+          </button>
+          <button class="nav-item" data-tab="dashboard">
+            <i data-lucide="layout-grid"></i> <span>หน้าหลัก</span>
+          </button>
+          <button class="nav-item" data-tab="transactions">
+            <i data-lucide="receipt-text"></i> <span>รายการ</span>
+          </button>
+          <button class="nav-item" data-tab="analytics">
+            <i data-lucide="pie-chart"></i> <span>สถิติ & รายงาน</span>
+          </button>
+          <button class="nav-item" data-tab="wallets">
+            <i data-lucide="credit-card"></i> <span>กระเป๋าเงิน</span>
+          </button>
+          <button class="nav-item" data-tab="budgets">
+            <i data-lucide="target"></i> <span>งบประมาณ & เป้าหมาย</span>
+          </button>
+          <button class="nav-item" data-tab="recurring">
+            <i data-lucide="repeat"></i> <span>รายการประจำ & หนี้</span>
+          </button>
+        </nav>
+
+        <div class="header-actions">
+          <button id="btn-device-toggle" class="btn-icon-subtle" title="สลับโหมดมุมมอง (มือถือ / จอกว้าง)">
+            <i data-lucide="smartphone"></i>
+          </button>
+          <button id="btn-top-login" class="btn-primary-compact">
+            <i data-lucide="log-in"></i> <span>เข้าสู่ระบบ</span>
+          </button>
+          <button id="btn-top-register" class="btn-secondary-compact">
+            <i data-lucide="user-plus"></i> <span>สมัครสมาชิก</span>
+          </button>
+          <button id="btn-quick-add" class="btn-primary-compact" style="display: none;">
+            <i data-lucide="plus"></i> <span>บันทึกรายการ</span>
+          </button>
+          <div class="user-profile-btn" id="btn-top-profile" data-tab="settings" style="display: none;">
+            <div class="avatar-sm avatar-icon-wrap"><i data-lucide="user"></i></div>
+            <span class="user-top-name" id="user-top-name">Name</span>
+          </div>
+          <button id="btn-header-logout" class="btn-icon-subtle text-rose" title="ออกจากระบบ (Log Out)" style="display: none;">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container Frame (Wraps mobile or responsive layout) -->
+    <div class="app-viewport-wrapper" id="viewport-wrapper">
+      <main class="app-container" id="app-container">
+
+        <!-- ==================== TAB 1: DASHBOARD ==================== -->
+        <section id="tab-dashboard" class="tab-view">
+          <!-- Mobile Header Bar -->
+          <div class="mobile-header">
+            <div class="user-greeting">
+              <div class="avatar-ring" id="btn-mobile-profile" data-tab="settings">
+                <div class="avatar-md avatar-icon-wrap"><i data-lucide="user"></i></div>
+                <span class="avatar-status-badge"><i data-lucide="check"></i></span>
+              </div>
+              <div class="greeting-text">
+                <p class="greeting-sub">สวัสดีคุณ 👋</p>
+                <h2 class="greeting-name" id="user-greeting-name">Name</h2>
+              </div>
+            </div>
+            <div class="header-tools">
+              <button class="btn-icon-circle" id="btn-scan-slip-quick" title="สแกนสลิปโอนเงิน">
+                <i data-lucide="scan-line"></i>
+              </button>
+              <button class="btn-icon-circle" id="btn-quick-notifications" title="การแจ้งเตือน">
+                <i data-lucide="bell"></i>
+                <span class="notify-dot"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Total Balance Hero Card -->
+          <div class="balance-hero-card">
+            <div class="hero-top">
+              <span class="hero-label">ยอดเงินคงเหลือสุทธิ (Net Balance)</span>
+              <button class="btn-eye-toggle" id="btn-toggle-balance-privacy">
+                <i data-lucide="eye" id="icon-balance-eye"></i>
+              </button>
+            </div>
+            <div class="hero-amount-row">
+              <h1 class="hero-amount" id="total-balance-display">฿ 45,280.00</h1>
+              <span class="hero-currency-tag" id="current-currency-tag">THB</span>
+            </div>
+
+            <!-- Month summary breakdown -->
+            <div class="hero-breakdown-grid">
+              <div class="breakdown-box income">
+                <div class="box-icon-wrap"><i data-lucide="arrow-down-left"></i></div>
+                <div class="box-content">
+                  <span class="box-label">รายรับเดือนนี้</span>
+                  <span class="box-value" id="month-income-display">฿ 65,000.00</span>
+                </div>
+              </div>
+              <div class="breakdown-box expense">
+                <div class="box-icon-wrap"><i data-lucide="arrow-up-right"></i></div>
+                <div class="box-content">
+                  <span class="box-label">รายจ่ายเดือนนี้</span>
+                  <span class="box-value" id="month-expense-display">฿ 19,720.00</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mini Progress bar for 50/30/20 or monthly budget -->
+            <div class="hero-budget-status">
+              <div class="budget-status-head">
+                <span>งบประมาณเดือนนี้ใช้ไป</span>
+                <span class="budget-pct" id="month-budget-pct">49%</span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill" id="month-budget-bar" style="width: 49%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons Row -->
+          <div class="quick-actions-bar">
+            <button class="action-card-btn" id="action-btn-income">
+              <div class="action-icon bg-emerald-light text-emerald"><i data-lucide="plus-circle"></i></div>
+              <span>รายรับ</span>
+            </button>
+            <button class="action-card-btn" id="action-btn-expense">
+              <div class="action-icon bg-rose-light text-rose"><i data-lucide="minus-circle"></i></div>
+              <span>รายจ่าย</span>
+            </button>
+            <button class="action-card-btn" id="action-btn-transfer">
+              <div class="action-icon bg-blue-light text-blue"><i data-lucide="arrow-left-right"></i></div>
+              <span>โอนเงิน</span>
+            </button>
+            <button class="action-card-btn" id="action-btn-scan">
+              <div class="action-icon bg-purple-light text-purple"><i data-lucide="scan"></i></div>
+              <span>สแกนสลิป</span>
+            </button>
+          </div>
+
+          <!-- Active Goals / Financial Rules Showcase (from Figma Onboarding) -->
+          <div class="section-card goal-highlight-card">
+            <div class="card-head">
+              <div class="head-title-group">
+                <span class="badge-pill-green"><i data-lucide="sparkles"></i> แผนการเงินที่คุณเลือก</span>
+                <h3 class="card-title" id="active-goal-title">กฎ 50/30/20 (Needs / Wants / Savings)</h3>
+              </div>
+              <button class="btn-text-link" id="btn-manage-goals">จัดการเป้าหมาย</button>
+            </div>
+            <div class="goal-rule-bars">
+              <div class="goal-sub-item">
+                <div class="goal-info">
+                  <span class="goal-label">จำเป็น 50% (Needs)</span>
+                  <span class="goal-val" id="needs-status">฿9,860 / ฿32,500</span>
+                </div>
+                <div class="progress-track sm"><div class="progress-fill emerald" id="needs-bar" style="width: 30%;"></div></div>
+              </div>
+              <div class="goal-sub-item">
+                <div class="goal-info">
+                  <span class="goal-label">ต้องการ 30% (Wants)</span>
+                  <span class="goal-val" id="wants-status">฿6,420 / ฿19,500</span>
+                </div>
+                <div class="progress-track sm"><div class="progress-fill blue" id="wants-bar" style="width: 33%;"></div></div>
+              </div>
+              <div class="goal-sub-item">
+                <div class="goal-info">
+                  <span class="goal-label">เงินออม 20% (Savings)</span>
+                  <span class="goal-val" id="savings-status">฿13,000 / ฿13,000</span>
+                </div>
+                <div class="progress-track sm"><div class="progress-fill purple" id="savings-bar" style="width: 100%;"></div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Wallets Horizontal Carousel -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">กระเป๋าเงิน & บัญชี</h3>
+              <button class="btn-link" data-tab="wallets">ดูทั้งหมด (<span id="wallet-count">4</span>)</button>
+            </div>
+            <div class="wallets-scroll-row" id="wallets-mini-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Recent Transactions List -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">รายการล่าสุด</h3>
+              <button class="btn-link" data-tab="transactions">ดูทั้งหมด</button>
+            </div>
+            <div class="transaction-list" id="dashboard-recent-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 2: TRANSACTIONS ==================== -->
+        <section id="tab-transactions" class="tab-view">
+          <div class="page-top-bar">
+            <h2 class="page-title">บันทึกรายการทั้งหมด</h2>
+            <div class="top-bar-actions">
+              <button class="btn-icon-circle" id="btn-export-options-tx" title="ดาวน์โหลด/ส่งออก">
+                <i data-lucide="download"></i>
+              </button>
+              <button class="btn-primary-compact" id="btn-add-tx-main">
+                <i data-lucide="plus"></i> <span>เพิ่มรายการ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="filter-card">
+            <div class="search-input-wrap">
+              <i data-lucide="search" class="search-icon"></i>
+              <input type="text" id="tx-search-input" placeholder="ค้นหารายการ, หมวดหมู่, บันทึกโน้ต...">
+              <button class="clear-search-btn" id="btn-clear-search" style="display: none;">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+
+            <div class="filter-chips-row">
+              <button class="filter-chip active" data-filter-type="all">ทั้งหมด</button>
+              <button class="filter-chip" data-filter-type="expense">รายจ่าย</button>
+              <button class="filter-chip" data-filter-type="income">รายรับ</button>
+              <button class="filter-chip" data-filter-type="transfer">โอนเงิน</button>
+              <select id="filter-wallet-select" class="filter-select">
+                <option value="all">ทุกกระเป๋าเงิน</option>
+              </select>
+              <select id="filter-month-select" class="filter-select">
+                <!-- Dynamically populated months -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Summary Bar for Filtered Results -->
+          <div class="filtered-summary-banner">
+            <div class="filtered-sum-item">
+              <span class="sub">รายรับ:</span>
+              <strong class="text-emerald" id="tx-filtered-income">฿0.00</strong>
+            </div>
+            <div class="filtered-sum-item">
+              <span class="sub">รายจ่าย:</span>
+              <strong class="text-rose" id="tx-filtered-expense">฿0.00</strong>
+            </div>
+            <div class="filtered-sum-item">
+              <span class="sub">คงเหลือ:</span>
+              <strong class="text-slate" id="tx-filtered-net">฿0.00</strong>
+            </div>
+          </div>
+
+          <!-- Full Grouped Transaction List -->
+          <div class="transaction-timeline" id="full-transactions-list">
+            <!-- Dynamically populated grouped by date -->
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 3: ANALYTICS & REPORTS ==================== -->
+        <section id="tab-analytics" class="tab-view">
+          <div class="page-top-bar">
+            <h2 class="page-title">สถิติและวิเคราะห์</h2>
+            <div class="period-selector-pill">
+              <button class="period-btn active" data-period="month">เดือนนี้</button>
+              <button class="period-btn" data-period="year">ปีนี้</button>
+              <button class="period-btn" data-period="custom">กำหนดเอง</button>
+            </div>
+          </div>
+
+          <!-- Analytics Summary Cards -->
+          <div class="analytics-stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-rose-light text-rose"><i data-lucide="trending-down"></i></div>
+              <div class="stat-details">
+                <span class="stat-label">ยอดใช้จ่ายเฉลี่ย/วัน</span>
+                <h3 class="stat-val" id="stat-avg-daily">฿657.33</h3>
+                <span class="stat-sub text-emerald"><i data-lucide="arrow-down"></i> ลดลง 12% จากเดือนก่อน</span>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-emerald-light text-emerald"><i data-lucide="piggy-bank"></i></div>
+              <div class="stat-details">
+                <span class="stat-label">อัตราการออม (Savings Rate)</span>
+                <h3 class="stat-val" id="stat-savings-rate">69.7%</h3>
+                <span class="stat-sub text-emerald">อยู่ในเกณฑ์ดีเยี่ยม ⭐</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row 1: Expense Breakdown Donut & Monthly Trend -->
+          <div class="charts-layout-grid">
+            <div class="chart-box-card">
+              <div class="chart-header">
+                <h3 class="chart-title">สัดส่วนรายจ่ายตามหมวดหมู่</h3>
+                <span class="chart-subtitle" id="donut-period-subtitle">เดือนปัจจุบัน</span>
+              </div>
+              <div class="chart-canvas-wrap donut-wrap">
+                <canvas id="categoryDonutChart"></canvas>
+              </div>
+              <div class="category-breakdown-legend" id="category-legend-list">
+                <!-- Dynamically populated breakdown -->
+              </div>
+            </div>
+
+            <div class="chart-box-card">
+              <div class="chart-header">
+                <h3 class="chart-title">แนวโน้มกระแสเงินสด (Cash Flow Trend)</h3>
+                <span class="chart-subtitle">รายรับ vs รายจ่าย</span>
+              </div>
+              <div class="chart-canvas-wrap">
+                <canvas id="cashflowBarChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts Row 2: 50/30/20 Distribution Analysis -->
+          <div class="chart-box-card mt-4">
+            <div class="chart-header">
+              <div class="title-with-badge">
+                <h3 class="chart-title">การกระจายตามกฎ 50/30/20</h3>
+                <span class="badge-pill-green">Financial Health</span>
+              </div>
+            </div>
+            <div class="rule-distribution-container" id="rule-analysis-content">
+              <!-- Dynamically populated 50/30/20 actual vs target bars -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 4: WALLETS & ACCOUNTS ==================== -->
+        <section id="tab-wallets" class="tab-view">
+          <div class="page-top-bar">
+            <h2 class="page-title">กระเป๋าเงินและบัญชี</h2>
+            <button class="btn-primary-compact" id="btn-add-wallet">
+              <i data-lucide="plus"></i> <span>เพิ่มบัญชี</span>
+            </button>
+          </div>
+
+          <!-- Total Liquid Asset Card -->
+          <div class="net-worth-banner">
+            <div class="banner-left">
+              <span class="label">สินทรัพย์รวมทั้งหมด</span>
+              <h2 class="total-val" id="wallets-total-networth">฿ 45,280.00</h2>
+            </div>
+            <button class="btn-secondary-light" id="btn-open-transfer-modal">
+              <i data-lucide="arrow-left-right"></i> <span>โอนเงินข้ามบัญชี</span>
+            </button>
+          </div>
+
+          <!-- Wallet Cards Grid -->
+          <div class="wallets-grid" id="wallets-full-grid">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 5: BUDGETS & SAVINGS GOALS ==================== -->
+        <section id="tab-budgets" class="tab-view">
+          <div class="page-top-bar">
+            <h2 class="page-title">งบประมาณและเป้าหมาย</h2>
+            <div class="top-bar-actions">
+              <button class="btn-secondary-compact" id="btn-open-goal-wizard">
+                <i data-lucide="compass"></i> <span>เปลี่ยนแผนการเงิน</span>
+              </button>
+              <button class="btn-primary-compact" id="btn-add-budget">
+                <i data-lucide="plus"></i> <span>ตั้งงบประมาณ</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Monthly Budget Overview -->
+          <div class="budget-master-card">
+            <div class="master-head">
+              <div>
+                <span class="sub">งบประมาณรายจ่ายรวมเดือนนี้</span>
+                <h2 class="master-amount" id="budget-master-total">฿ 40,000.00</h2>
+              </div>
+              <div class="budget-master-badge" id="budget-master-status">
+                <span>ปลอดภัย (ใช้ไป 49%)</span>
+              </div>
+            </div>
+            <div class="progress-track lg">
+              <div class="progress-fill emerald" id="budget-master-bar" style="width: 49%;"></div>
+            </div>
+            <div class="master-foot">
+              <span>ใช้ไปแล้ว: <strong id="budget-master-spent">฿19,720.00</strong></span>
+              <span>คงเหลือใช้ได้: <strong class="text-emerald" id="budget-master-remain">฿20,280.00</strong></span>
+            </div>
+          </div>
+
+          <!-- Category Budgets Grid -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">งบประมาณแยกตามหมวดหมู่</h3>
+            </div>
+            <div class="category-budgets-grid" id="category-budgets-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Saving Goals / Pots -->
+          <div class="section-container">
+            <div class="section-header">
+              <h3 class="section-title">กระปุกเงินออมและเป้าหมาย (Saving Goals)</h3>
+              <button class="btn-link" id="btn-add-saving-pot">+ เพิ่มเป้าหมายออม</button>
+            </div>
+            <div class="saving-goals-grid" id="saving-goals-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 6: RECURRING & DEBTS ==================== -->
+        <section id="tab-recurring" class="tab-view">
+          <div class="page-top-bar">
+            <h2 class="page-title">รายการประจำและหนี้สิน</h2>
+            <div class="segment-tabs-wrap">
+              <button class="segment-tab active" data-subview="recurring-bills">รายการประจำ / สมาชิก</button>
+              <button class="segment-tab" data-subview="debts-loans">บันทึกหนี้สิน / ยืมคืน</button>
+            </div>
+          </div>
+
+          <!-- Subview 1: Recurring Bills -->
+          <div id="subview-recurring-bills" class="subview-content active">
+            <div class="subview-header">
+              <p class="text-muted">บิลและค่าใช้จ่ายที่เกิดขึ้นประจำ เช่น ค่าเน็ต, ค่าห้อง, Netflix, เงินเดือน</p>
+              <button class="btn-primary-compact" id="btn-add-recurring">
+                <i data-lucide="plus"></i> <span>เพิ่มรายการประจำ</span>
+              </button>
+            </div>
+            <div class="recurring-list" id="recurring-bills-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Subview 2: Debts & Loans -->
+          <div id="subview-debts-loans" class="subview-content">
+            <div class="subview-header">
+              <p class="text-muted">ติดตามยอดเงินที่คนอื่นยืมเรา หรือที่เราต้องจ่ายคืนคนอื่น</p>
+              <button class="btn-primary-compact" id="btn-add-debt">
+                <i data-lucide="plus"></i> <span>เพิ่มรายการหนี้สิน</span>
+              </button>
+            </div>
+            <div class="debts-list" id="debts-loans-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 7: SETTINGS & PROFILE (Figma Design) ==================== -->
+        <section id="tab-settings" class="tab-view">
+          <!-- Figma Settings Profile Header -->
+          <div class="settings-profile-card">
+            <div class="profile-avatar-container">
+              <div class="profile-avatar-wrap">
+                <div class="profile-avatar-inner"><i data-lucide="user"></i></div>
+              </div>
+              <span class="profile-verified-badge"><i data-lucide="check"></i></span>
+            </div>
+            <h2 class="profile-display-name" id="settings-name-display">Name</h2>
+            <p class="profile-display-handle" id="settings-handle-display" style="display: none;"></p>
+            <button class="btn-edit-profile-pill" id="btn-open-edit-profile">
+              <i data-lucide="user-pen"></i> แก้ไขโปรไฟล์
+            </button>
+          </div>
+
+          <!-- Figma Subscription Banner -->
+          <div class="settings-pro-banner" id="btn-open-subscription">
+            <div class="banner-pro-icon"><i data-lucide="crown"></i></div>
+            <div class="banner-pro-text">
+              <div class="pro-tag-row">
+                <span class="pro-badge">PRO PLAN</span>
+                <span class="pro-tag">ทดลองใช้ฟรี 7 วัน</span>
+              </div>
+              <h4>อัปเกรดเป็น SmartFinance Pro</h4>
+              <p>สแกนสลิปไม่จำกัด, ซิงค์ทุกอุปกรณ์ และส่งออกรายงานระดับพรีเมียม</p>
+            </div>
+            <i data-lucide="chevron-right" class="chevron"></i>
+          </div>
+
+          <!-- Figma Settings Menu List -->
+          <div class="settings-menu-group">
+            <h4 class="menu-group-title">การตั้งค่าทั่วไป & บัญชี</h4>
+
+            <div class="settings-item" id="menu-security-pin">
+              <div class="item-left">
+                <div class="item-icon-box bg-emerald-light text-emerald"><i data-lucide="lock"></i></div>
+                <div class="item-text">
+                  <span class="title">รหัสผ่าน & PIN ล็อกหน้าจอ</span>
+                  <span class="desc" id="pin-status-desc">เปิดใช้งาน PIN 4 หลัก</span>
+                </div>
+              </div>
+              <div class="item-right">
+                <label class="switch">
+                  <input type="checkbox" id="toggle-pin-security" checked>
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-item" id="menu-currency-select">
+              <div class="item-left">
+                <div class="item-icon-box bg-blue-light text-blue"><i data-lucide="badge-dollar-sign"></i></div>
+                <div class="item-text">
+                  <span class="title">สกุลเงินหลัก</span>
+                  <span class="desc" id="setting-current-currency">THB (฿) บาทไทย</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="chevron"></i>
+            </div>
+
+            <div class="settings-item" id="menu-theme-mode">
+              <div class="item-left">
+                <div class="item-icon-box bg-purple-light text-purple"><i data-lucide="sun-moon"></i></div>
+                <div class="item-text">
+                  <span class="title">ธีมการแสดงผล (Appearance)</span>
+                  <span class="desc">สว่าง (Figma Clean Light Mode)</span>
+                </div>
+              </div>
+              <span class="item-badge">Clean Mint</span>
+            </div>
+
+            <div class="settings-item" id="menu-export-data">
+              <div class="item-left">
+                <div class="item-icon-box bg-amber-light text-amber"><i data-lucide="file-spreadsheet"></i></div>
+                <div class="item-text">
+                  <span class="title">ส่งออกข้อมูล (Export CSV / Excel / PDF)</span>
+                  <span class="desc">ดาวน์โหลดบันทึกทั้งหมดเพื่อนำไปทำรายงาน</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="chevron"></i>
+            </div>
+
+            <div class="settings-item" id="menu-backup-restore">
+              <div class="item-left">
+                <div class="item-icon-box bg-indigo-light text-indigo"><i data-lucide="hard-drive-download"></i></div>
+                <div class="item-text">
+                  <span class="title">สำรองและกู้คืนข้อมูล (Backup & Restore)</span>
+                  <span class="desc">บันทึกหรือนำเข้าไฟล์ข้อมูล JSON</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="chevron"></i>
+            </div>
+          </div>
+
+          <!-- Demo Data & Reset Actions -->
+          <div class="settings-menu-group">
+            <h4 class="menu-group-title">การจัดการระบบ & ข้อมูลทดสอบ</h4>
+
+            <div class="settings-item" id="btn-load-demo-data">
+              <div class="item-left">
+                <div class="item-icon-box bg-teal-light text-teal"><i data-lucide="sparkles"></i></div>
+                <div class="item-text">
+                  <span class="title">โหลดข้อมูลตัวอย่าง (Realistic Demo Data)</span>
+                  <span class="desc">เติมรายการรายรับ-รายจ่ายสมจริงให้ทันที</span>
+                </div>
+              </div>
+              <button class="btn-xs-primary">โหลดตัวอย่าง</button>
+            </div>
+
+            <div class="settings-item text-danger" id="btn-reset-all-data">
+              <div class="item-left">
+                <div class="item-icon-box bg-rose-light text-rose"><i data-lucide="trash-2"></i></div>
+                <div class="item-text">
+                  <span class="title text-rose">ล้างข้อมูลทั้งหมด (Reset App)</span>
+                  <span class="desc">ลบรายการทั้งหมดและเริ่มต้นใหม่</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="chevron"></i>
+            </div>
+
+            <!-- Figma Log Out Modal Trigger -->
+            <div class="settings-item" id="btn-figma-logout">
+              <div class="item-left">
+                <div class="item-icon-box bg-slate-light text-slate"><i data-lucide="log-out"></i></div>
+                <div class="item-text">
+                  <span class="title">ออกจากระบบ (Log out)</span>
+                  <span class="desc">ล็อกหน้าจอเพื่อความปลอดภัย</span>
+                </div>
+              </div>
+              <i data-lucide="chevron-right" class="chevron"></i>
+            </div>
+          </div>
+
+          <div class="app-version-footer">
+            <p>SmartFinance App v2.0 • Figma Design Edition</p>
+            <p>Offline-First & Privacy Preserving</p>
+          </div>
+        </section>
+
+
+        <!-- ==================== TAB 8: ABOUT & HOW IT WORKS (GUIDE - DEFAULT LANDING) ==================== -->
+        <section id="tab-guide" class="tab-view active">
+          <!-- Guide Hero Banner -->
+          <div class="guide-hero-banner">
+            <div class="guide-hero-badge"><i data-lucide="sparkles"></i> รู้จักกับ NongOm (Smart Spending)</div>
+            <h1 class="guide-hero-title">NongOm ทำอะไร และช่วยจัดการเงินของคุณอย่างไร?</h1>
+            <p class="guide-hero-desc">
+              แอพพลิเคชันบันทึกรายรับ-รายจ่ายและจัดการการเงินอัจฉริยะ ที่ออกแบบมาเพื่อเปลี่ยนการทำบัญชีที่ยุ่งยาก ให้กลายเป็นเรื่องง่าย สะดวกรวดเร็วด้วยระบบสแกนสลิป AI พร้อมช่วยจัดสรรเงินตามกฎการเงินสากลเพื่อสร้างวินัยและอิสรภาพทางการเงินของคุณ
+            </p>
+            <div class="guide-hero-tags">
+              <span class="guide-tag"><i data-lucide="zap"></i> สแกนสลิปอัตโนมัติใน 1 วินาที</span>
+              <span class="guide-tag"><i data-lucide="target"></i> จัดสรรเงินตามกฎ 50/30/20</span>
+              <span class="guide-tag"><i data-lucide="shield-check"></i> 100% Offline-First ปลอดภัยในเครื่อง</span>
+              <span class="guide-tag"><i data-lucide="file-spreadsheet"></i> ส่งออกรายงาน Excel & PDF</span>
+            </div>
+            <div class="guide-hero-actions">
+              <button class="btn-primary" id="btn-guide-start">
+                <i data-lucide="rocket"></i> <span>เริ่มต้นใช้งานทันที (เข้าสู่ระบบ)</span>
+              </button>
+              <button class="btn-secondary" id="btn-guide-login">
+                <i data-lucide="lock"></i> <span>เข้าสู่ระบบด้วย PIN (1234)</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- SECTION 1: WHAT WE DO (6 เสาหลักของ NongOm) -->
+          <div class="section-container mt-6">
+            <div class="guide-section-head text-center">
+              <span class="badge-pill-green"><i data-lucide="layers"></i> Core Capabilities</span>
+              <h2 class="guide-section-title">เราทำอะไร? (What NongOm Does)</h2>
+              <p class="guide-section-subtitle">6 ฟังก์ชันอัจฉริยะที่ช่วยยกระดับการเงินส่วนบุคคลของคุณ</p>
+            </div>
+
+            <div class="guide-features-grid">
+              <!-- Feature 1 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-emerald-light text-emerald"><i data-lucide="scan-line"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">AI Powered</span>
+                  </div>
+                  <h3>1. สแกนสลิปโอนเงินอัตโนมัติ (Slip OCR)</h3>
+                  <p>เพียงอัปโหลดรูปสลิปธนาคาร (กสิกร, SCB, กรุงไทย, พร้อมเพย์, TrueMoney ฯลฯ) ระบบจะตรวจจับยอดเงิน วันที่ และผู้รับเงิน พร้อมเลือกหมวดหมู่ให้อัตโนมัติใน 1 วินาทีโดยไม่ต้องพิมพ์เอง</p>
+                </div>
+              </div>
+
+              <!-- Feature 2 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-blue-light text-blue"><i data-lucide="target"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">Financial Rule</span>
+                  </div>
+                  <h3>2. วางแผนสัดส่วน 50/30/20 & Pay Yourself First</h3>
+                  <p>จัดสรรเงินรายได้ตามสูตรการเงินระดับโลก: <strong>จำเป็น 50%</strong> (Needs: ค่าห้อง, อาหาร, ค่าน้ำไฟ), <strong>ตามใจ 30%</strong> (Wants: ช้อปปิ้ง, คาเฟ่) และ <strong>เงินออม 20%</strong> (Savings) พร้อมแถบวัดผลแบบเรียลไทม์</p>
+                </div>
+              </div>
+
+              <!-- Feature 3 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-purple-light text-purple"><i data-lucide="credit-card"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">Multi-Accounts</span>
+                  </div>
+                  <h3>3. รวมศูนย์ทุกกระเป๋าเงิน (Multi-Wallet Master)</h3>
+                  <p>จัดการเงินสด, บัญชีธนาคารต่างๆ, บัตรเครดิต และ e-Wallet ได้ครบในที่เดียว พร้อมระบบโอนเงินข้ามบัญชี และคำนวณยอดสินทรัพย์สุทธิ (Net Worth) ให้อัตโนมัติ</p>
+                </div>
+              </div>
+
+              <!-- Feature 4 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-amber-light text-amber"><i data-lucide="pie-chart"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">Data Visualizer</span>
+                  </div>
+                  <h3>4. วิเคราะห์กระแสเงินสดและสถิติเชิงลึก</h3>
+                  <p>มองเห็นพฤติกรรมการใช้จ่ายอย่างชัดเจนผ่าน Donut Chart แยกตามหมวดหมู่ และ Bar Chart แนวโน้มรายรับ-รายจ่ายรายวัน/รายเดือน ช่วยค้นหาจุดรั่วไหลของเงิน</p>
+                </div>
+              </div>
+
+              <!-- Feature 5 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-teal-light text-teal"><i data-lucide="piggy-bank"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">Saving Goals</span>
+                  </div>
+                  <h3>5. คุมงบประมาณ & กระปุกเงินออมตามเป้าหมาย</h3>
+                  <p>กำหนดเพดานการใช้จ่ายแต่ละหมวดหมู่เพื่อป้องกันการใช้เงินเกินตัว พร้อมสร้างกระปุกออมเงิน (เช่น กองทุนฉุกเฉิน, มือถือใหม่, ทริปท่องเที่ยว) และกดหยอดกระปุกได้ทันใจ</p>
+                </div>
+              </div>
+
+              <!-- Feature 6 -->
+              <div class="guide-feature-card">
+                <div class="guide-card-icon bg-rose-light text-rose"><i data-lucide="shield-check"></i></div>
+                <div class="guide-card-content">
+                  <div class="guide-card-tag-row">
+                    <span class="guide-card-tag">Privacy 100%</span>
+                  </div>
+                  <h3>6. ปลอดภัยสูงสุดด้วยระบบ Offline-First</h3>
+                  <p>ข้อมูลทางการเงินของคุณจะถูกจัดเก็บบนอุปกรณ์ของคุณเท่านั้น ไม่มีการส่งข้อมูลส่วนบุคคลขึ้นเซิร์ฟเวอร์ภายนอก ใช้งานได้เร็วแม้ไม่มีอินเทอร์เน็ต และสำรองข้อมูล JSON ได้ตลอดเวลา</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 2: HOW IT WORKS (ขั้นตอนการทำงาน 4 สเต็ป) -->
+          <div class="section-container mt-8">
+            <div class="guide-section-head text-center">
+              <span class="badge-pill-green"><i data-lucide="workflow"></i> Step-by-Step Flow</span>
+              <h2 class="guide-section-title">ระบบทำงานอย่างไร? (How It Works)</h2>
+              <p class="guide-section-subtitle">เริ่มต้นใช้งานง่ายๆ เพียง 4 ขั้นตอน</p>
+            </div>
+
+            <div class="guide-steps-timeline">
+              <!-- Step 1 -->
+              <div class="guide-step-card">
+                <div class="step-number-badge">1</div>
+                <div class="step-card-body">
+                  <div class="step-icon bg-emerald-light text-emerald"><i data-lucide="compass"></i></div>
+                  <h4>ขั้นตอนที่ 1: วางแผนและตั้งเป้าหมายการเงิน</h4>
+                  <p>เลือกรูปแบบการเงินที่ตรงกับไลฟ์สไตล์ (เช่น กฎ 50/30/20 หรือ Pay Yourself First) และระบุรายได้เฉลี่ยต่อเดือน ระบบจะคำนวณกรอบการใช้จ่ายที่เหมาะสมให้ทันที</p>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="guide-step-card">
+                <div class="step-number-badge">2</div>
+                <div class="step-card-body">
+                  <div class="step-icon bg-blue-light text-blue"><i data-lucide="receipt"></i></div>
+                  <h4>ขั้นตอนที่ 2: บันทึกรายการ หรือ สแกนสลิปโอนเงิน</h4>
+                  <p>เมื่อมีการใช้จ่าย เพียงถ่ายรูปสลิปธนาคารแล้วลากวางในระบบ หรือกดปุ่ม <strong>+ บันทึกรายการ</strong> ระบบจะดึงยอดเงินและแนะนำหมวดหมู่ให้พร้อมตัดยอดจากกระเป๋าที่เลือก</p>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="guide-step-card">
+                <div class="step-number-badge">3</div>
+                <div class="step-card-body">
+                  <div class="step-icon bg-purple-light text-purple"><i data-lucide="cpu"></i></div>
+                  <h4>ขั้นตอนที่ 3: ระบบประมวลผลและเช็กงบประมาณ</h4>
+                  <p>ระบบจะอัปเดตยอดเงินคงเหลือสุทธิในทุกบัญชีทันที พร้อมวิเคราะห์สถานะงบประมาณประจำเดือนว่าปลอดภัยหรือใกล้เกินงบ เพื่อช่วยให้คุณควบคุมการใช้เงินได้ทันท่วงที</p>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="guide-step-card">
+                <div class="step-number-badge">4</div>
+                <div class="step-card-body">
+                  <div class="step-icon bg-teal-light text-teal"><i data-lucide="file-check"></i></div>
+                  <h4>ขั้นตอนที่ 4: สรุปรายงานและบรรลุเป้าหมาย</h4>
+                  <p>ดูกราฟวิเคราะห์พฤติกรรมการใช้เงิน สัดส่วนการออม และส่งออกรายงานสรุปทางการเงินเป็นไฟล์ <strong>Excel (.xlsx)</strong>, <strong>CSV</strong> หรือ <strong>PDF Report</strong> ได้ในคลิกเดียว</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 3: FAQ -->
+          <div class="section-container mt-8">
+            <div class="guide-section-head text-center">
+              <span class="badge-pill-green"><i data-lucide="help-circle"></i> FAQ</span>
+              <h2 class="guide-section-title">คำถามที่พบบ่อย</h2>
+            </div>
+
+            <div class="faq-list-wrap">
+              <div class="faq-item-card">
+                <h4><i data-lucide="check-circle-2" class="text-emerald"></i> สแกนสลิปธนาคารไหนได้บ้าง?</h4>
+                <p>รองรับสลิปการโอนเงินของทุกธนาคารในประเทศไทย (เช่น กสิกรไทย K PLUS, ไทยพาณิชย์ SCB EASY, กรุงไทย NEXT, กรุงเทพ Bualuang, พร้อมเพย์ PromptPay, และ TrueMoney Wallet)</p>
+              </div>
+
+              <div class="faq-item-card">
+                <h4><i data-lucide="check-circle-2" class="text-emerald"></i> ข้อมูลการเงินจะหายหรือไม่หากปิดเบราว์เซอร์?</h4>
+                <p>ข้อมูลทั้งหมดจะถูกบันทึกไว้ใน LocalStorage บนเบราว์เซอร์เครื่องของคุณอย่างถาวร ปิดเครื่องหรือรีเฟรชข้อมูลก็ยังอยู่ครบ และคุณสามารถกดสำรองข้อมูล (JSON Backup) ได้ตลอดเวลา</p>
+              </div>
+
+              <div class="faq-item-card">
+                <h4><i data-lucide="check-circle-2" class="text-emerald"></i> สามารถใช้งานบนสมาร์ทโฟนได้หรือไม่?</h4>
+                <p>ได้แน่นอนครับ ตัวเว็บออกแบบด้วยระบบ Responsive เต็มรูปแบบ รองรับทั้งจอคอมพิวเตอร์ แท็บเล็ต และสมาร์ทโฟน พร้อมมีปุ่มสลับมุมมอง Mobile Frame Mockup ให้ทดลองดู UI บนมือถือได้ทันที</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 4: CTA BANNER -->
+          <div class="guide-cta-card mt-8">
+            <div class="cta-card-content text-center">
+              <div class="cta-icon-circle"><i data-lucide="sparkles"></i></div>
+              <h2 class="cta-title">พร้อมเริ่มต้นสร้างวินัยทางการเงินกับ NongOm แล้วหรือยัง?</h2>
+              <p class="cta-desc">จัดการเงินของคุณอย่างชาญฉลาด รวดเร็ว และเป็นส่วนตัว ปลอดภัย 100%</p>
+              <div class="cta-btn-row">
+                <button class="btn-primary-lg" id="btn-cta-start">
+                  <i data-lucide="arrow-right-circle"></i> เริ่มต้นใช้งาน & เข้าสู่ระบบ
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Bottom Navigation Bar (Mobile / PWA Native Experience) -->
+      <nav class="mobile-bottom-nav">
+        <button class="tab-btn active" data-tab="dashboard">
+          <i data-lucide="layout-grid"></i>
+          <span>หน้าหลัก</span>
+        </button>
+        <button class="tab-btn" data-tab="transactions">
+          <i data-lucide="receipt-text"></i>
+          <span>รายการ</span>
+        </button>
+        <div class="center-fab-wrapper">
+          <button class="center-fab-btn" id="btn-mobile-fab" title="เพิ่มรายการ">
+            <i data-lucide="plus"></i>
+          </button>
+        </div>
+        <button class="tab-btn" data-tab="analytics">
+          <i data-lucide="pie-chart"></i>
+          <span>สถิติ</span>
+        </button>
+        <button class="tab-btn" data-tab="settings">
+          <i data-lucide="settings-2"></i>
+          <span>ตั้งค่า</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ==================== MODALS & OVERLAYS ==================== -->
+
+    <!-- 1. ADD / EDIT TRANSACTION MODAL -->
+    <div class="modal-overlay" id="modal-transaction" aria-hidden="true">
+      <div class="modal-card modal-slide-up">
+        <div class="modal-header">
+          <h3 class="modal-title" id="tx-modal-title">บันทึกรายการใหม่</h3>
+          <button class="modal-close-btn" id="btn-close-tx-modal"><i data-lucide="x"></i></button>
+        </div>
+
+        <!-- Segmented Type Selector -->
+        <div class="type-segment-control">
+          <button class="type-seg-btn active" data-tx-type="expense">รายจ่าย</button>
+          <button class="type-seg-btn" data-tx-type="income">รายรับ</button>
+          <button class="type-seg-btn" data-tx-type="transfer">โอนเงิน</button>
+        </div>
+
+        <form id="form-transaction" class="modal-form">
+          <input type="hidden" id="tx-edit-id" value="">
+
+          <!-- Amount Input with currency badge -->
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน</label>
+            <div class="amount-input-box">
+              <span class="currency-symbol" id="tx-form-currency">฿</span>
+              <input type="number" step="any" id="tx-amount" placeholder="0.00" required autofocus>
+              <button type="button" class="btn-ocr-in-form" id="btn-ocr-trigger" title="สแกนสลิปเพื่อกรอกยอด">
+                <i data-lucide="scan"></i> สแกนสลิป
+              </button>
+            </div>
+          </div>
+
+          <!-- Category Selector (For Expense & Income) -->
+          <div class="form-group" id="form-category-group">
+            <label class="form-label">หมวดหมู่</label>
+            <div class="category-pill-picker" id="tx-category-picker">
+              <!-- Dynamically populated category chips with icons -->
+            </div>
+            <input type="hidden" id="tx-category" value="food">
+          </div>
+
+          <!-- Source Wallet & Destination Wallet -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" id="tx-wallet-label">จากกระเป๋าเงิน</label>
+              <select id="tx-wallet" class="form-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group" id="form-target-wallet-group" style="display: none;">
+              <label class="form-label">ไปยังกระเป๋าเงิน</label>
+              <select id="tx-target-wallet" class="form-select">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Date & Time Row -->
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label">วันที่</label>
+              <input type="date" id="tx-date" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">เวลา</label>
+              <input type="time" id="tx-time" class="form-input" required>
+            </div>
+          </div>
+
+          <!-- Note & Tags -->
+          <div class="form-group">
+            <label class="form-label">บันทึกช่วยจำ (Note)</label>
+            <input type="text" id="tx-note" class="form-input" placeholder="เช่น กาแฟยามเช้า, ข้าวเที่ยง, ค่าเน็ต">
+          </div>
+
+          <!-- Receipt image attachment preview -->
+          <div class="form-group">
+            <label class="form-label">รูปภาพสลิป/ใบเสร็จ (แนบเพื่อตรวจสอบ)</label>
+            <div class="receipt-upload-box" id="receipt-dropzone">
+              <input type="file" id="receipt-file-input" accept="image/*" class="file-hidden-input">
+              <div class="upload-placeholder" id="upload-prompt-view">
+                <i data-lucide="image-up"></i>
+                <span>คลิกหรือแตะเพื่อแนบรูปสลิป / ใบเสร็จ</span>
+              </div>
+              <div class="upload-preview-wrap" id="upload-preview-view" style="display: none;">
+                <img src="" id="receipt-preview-img" alt="Receipt">
+                <button type="button" class="btn-remove-receipt" id="btn-remove-receipt"><i data-lucide="trash-2"></i></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-tx">ยกเลิก</button>
+            <button type="submit" class="btn-primary" id="btn-save-tx">บันทึกรายการ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 2. SMART SLIP OCR SCANNER MODAL -->
+    <div class="modal-overlay" id="modal-ocr-scanner" aria-hidden="true">
+      <div class="modal-card modal-md">
+        <div class="modal-header">
+          <div class="modal-title-with-icon">
+            <div class="modal-icon-badge bg-emerald-light text-emerald"><i data-lucide="scan-line"></i></div>
+            <div>
+              <h3 class="modal-title">สแกนสลิปโอนเงินธนาคาร</h3>
+              <p class="modal-subtitle">AI & OCR จะอ่านยอดเงิน วันที่ และผู้รับ เพื่อบันทึกให้อัตโนมัติ</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="btn-close-ocr-modal"><i data-lucide="x"></i></button>
+        </div>
+
+        <div class="ocr-body">
+          <div class="ocr-dropzone" id="ocr-dropzone">
+            <input type="file" id="ocr-file-input" accept="image/*" class="file-hidden-input">
+            <div class="ocr-upload-content" id="ocr-upload-prompt">
+              <div class="ocr-icon-circle"><i data-lucide="upload-cloud"></i></div>
+              <h4>ลากรูปสลิปมาวาง หรือ คลิกเพื่อเลือกรูป</h4>
+              <p>รองรับสลิปทุกธนาคาร (กสิกร, SCB, กรุงไทย, พร้อมเพย์, TrueMoney ฯลฯ)</p>
+              <button type="button" class="btn-select-file-pill">เลือกไฟล์สลิป</button>
+            </div>
+
+            <div class="ocr-processing-wrap" id="ocr-processing" style="display: none;">
+              <div class="spinner-ring"></div>
+              <h4 id="ocr-status-text">กำลังสแกนและวิเคราะห์สลิป...</h4>
+              <p class="ocr-progress-sub">ตรวจจับยอดเงินและบัญชีปลายทาง</p>
+            </div>
+
+            <div class="ocr-result-preview" id="ocr-result-preview" style="display: none;">
+              <img src="" id="ocr-preview-image" alt="Scanned Slip">
+            </div>
+          </div>
+
+          <!-- OCR Parsed Results Form Card -->
+          <div class="ocr-detected-card" id="ocr-detected-card" style="display: none;">
+            <h4 class="card-subtitle"><i data-lucide="sparkles" class="text-emerald"></i> ข้อมูลที่ตรวจพบจากสลิป</h4>
+            <div class="detected-grid">
+              <div class="detected-field">
+                <span class="sub">จำนวนเงิน</span>
+                <strong class="val text-rose" id="ocr-res-amount">฿ 0.00</strong>
+              </div>
+              <div class="detected-field">
+                <span class="sub">วันที่ & เวลา</span>
+                <strong class="val" id="ocr-res-date">-</strong>
+              </div>
+              <div class="detected-field">
+                <span class="sub">ผู้รับเงิน / ร้านค้า</span>
+                <strong class="val" id="ocr-res-receiver">-</strong>
+              </div>
+              <div class="detected-field">
+                <span class="sub">แนะนำหมวดหมู่</span>
+                <strong class="val text-emerald" id="ocr-res-category">อาหารและเครื่องดื่ม</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer-actions">
+          <button type="button" class="btn-secondary" id="btn-cancel-ocr">ปิด</button>
+          <button type="button" class="btn-primary" id="btn-use-ocr-result" style="display: none;">นำข้อมูลไปบันทึก</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 3. FIGMA ONBOARDING & GOAL PERSONALIZATION WIZARD MODAL -->
+    <div class="modal-overlay" id="modal-onboarding" aria-hidden="true">
+      <div class="modal-card modal-onboarding-card">
+        <!-- Top Green Progress Bar -->
+        <div class="onboarding-progress-track">
+          <div class="onboarding-progress-fill" id="onboarding-step-bar" style="width: 25%;"></div>
+        </div>
+
+        <!-- Step 1: Splash / Welcome (From Figma Screen 1) -->
+        <div class="onboarding-step active" id="onboarding-step-1">
+          <div class="onboarding-hero-image">
+            <div class="hero-brand-circle">
+              <i data-lucide="trending-up"></i>
+            </div>
+          </div>
+          <div class="onboarding-content text-center">
+            <h2 class="onboarding-headline">Begin Smart Spending Today</h2>
+            <p class="onboarding-subline">Better habits start with every record. ควบคุมการเงินให้เติบโตตามเป้าหมาย</p>
+          </div>
+          <button class="btn-primary-block mt-8" id="btn-onboarding-step1-next">Next</button>
+        </div>
+
+        <!-- Step 2: Personalise Finance Journey (From Figma Screen 2) -->
+        <div class="onboarding-step" id="onboarding-step-2">
+          <div class="onboarding-header-compact">
+            <h2 class="onboarding-headline">Personalise your finance journey</h2>
+            <p class="onboarding-subline">Select your primary financial strategy:</p>
+          </div>
+
+          <div class="figma-goals-list" id="goals-select-list">
+            <!-- Goal Card 1: 50/30/20 -->
+            <label class="figma-goal-card active">
+              <input type="radio" name="finance_goal" value="rule_50_30_20" checked>
+              <div class="goal-card-body">
+                <h4>Budget Rule (50/30/20)</h4>
+                <p>Divide your money into clear parts for needs (50%), wants (30%), and saving (20%).</p>
+              </div>
+              <div class="goal-check-circle"><i data-lucide="check"></i></div>
+            </label>
+
+            <!-- Goal Card 2: Pay Yourself First -->
+            <label class="figma-goal-card">
+              <input type="radio" name="finance_goal" value="pay_yourself_first">
+              <div class="goal-card-body">
+                <h4>Pay Yourself First</h4>
+                <p>หักเงินออมทันทีที่รายได้เข้า ก่อนนำส่วนที่เหลือไปจัดสรรใช้จ่าย</p>
+              </div>
+              <div class="goal-check-circle"><i data-lucide="check"></i></div>
+            </label>
+
+            <!-- Goal Card 3: Saving Challenges -->
+            <label class="figma-goal-card">
+              <input type="radio" name="finance_goal" value="saving_challenges">
+              <div class="goal-card-body">
+                <h4>Saving Challenges</h4>
+                <p>Make saving money fun with simple daily challenges and savings pots.</p>
+              </div>
+              <div class="goal-check-circle"><i data-lucide="check"></i></div>
+            </label>
+
+            <!-- Goal Card 4: Goal-Based Saving -->
+            <label class="figma-goal-card">
+              <input type="radio" name="finance_goal" value="goal_based_saving">
+              <div class="goal-card-body">
+                <h4>Goal-Based Saving</h4>
+                <p>เก็บเงินเพื่อเป้าหมายเฉพาะ เช่น ซื้อบ้าน, ท่องเที่ยว, หรือกองทุนฉุกเฉิน 6 เดือน</p>
+              </div>
+              <div class="goal-check-circle"><i data-lucide="check"></i></div>
+            </label>
+          </div>
+
+          <div class="onboarding-actions-row">
+            <button class="btn-secondary" id="btn-onboarding-step2-prev">Back</button>
+            <button class="btn-primary" id="btn-onboarding-step2-next">Next</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Setup Profile & Income -->
+        <div class="onboarding-step" id="onboarding-step-3">
+          <div class="onboarding-header-compact">
+            <h2 class="onboarding-headline">ตั้งค่าโปรไฟล์และรายได้</h2>
+            <p class="onboarding-subline">เพื่อคำนวณสัดส่วนงบประมาณที่แม่นยำ</p>
+          </div>
+
+          <div class="onboarding-form">
+            <div class="form-group">
+              <label class="form-label">ชื่อของคุณ</label>
+              <input type="text" id="onboard-user-name" class="form-input" value="NongOm" placeholder="กรอกชื่อของคุณ">
+            </div>
+            <div class="form-group">
+              <label class="form-label">รายได้เฉลี่ยต่อเดือน (บาท)</label>
+              <input type="number" id="onboard-monthly-income" class="form-input" value="65000" placeholder="เช่น 30000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">สกุลเงินหลัก</label>
+              <select id="onboard-currency" class="form-select">
+                <option value="THB" selected>฿ THB (บาทไทย)</option>
+                <option value="USD">$ USD (US Dollar)</option>
+                <option value="EUR">€ EUR (Euro)</option>
+                <option value="JPY">¥ JPY (Japanese Yen)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="onboarding-actions-row">
+            <button class="btn-secondary" id="btn-onboarding-step3-prev">Back</button>
+            <button class="btn-primary" id="btn-onboarding-finish">เริ่มต้นใช้งานแอป</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 4. FIGMA SUBSCRIPTION PLANS MODAL (From Figma Bottom Left) -->
+    <div class="modal-overlay" id="modal-subscription" aria-hidden="true">
+      <div class="modal-card modal-onboarding-card">
+        <div class="modal-header">
+          <div class="badge-pill-green"><i data-lucide="star"></i> Subscription plans</div>
+          <button class="modal-close-btn" id="btn-close-sub-modal"><i data-lucide="x"></i></button>
+        </div>
+
+        <div class="text-center my-4">
+          <h2 class="onboarding-headline">Choose your subscription plan</h2>
+          <p class="onboarding-subline">And get a 7-day free trial</p>
+        </div>
+
+        <div class="sub-plans-list">
+          <label class="sub-plan-card active">
+            <input type="radio" name="sub_plan" value="yearly" checked>
+            <div class="plan-info">
+              <span class="plan-name">Yearly <span class="discount-tag">58% discount</span></span>
+              <span class="plan-sub"> billed annually</span>
+            </div>
+            <div class="plan-price">
+              <strong>฿ 999</strong>
+              <span>every year</span>
+            </div>
+            <div class="plan-check"><i data-lucide="check"></i></div>
+          </label>
+
+          <label class="sub-plan-card">
+            <input type="radio" name="sub_plan" value="monthly">
+            <div class="plan-info">
+              <span class="plan-name">Monthly <span class="discount-tag">15% discount</span></span>
+              <span class="plan-sub">billed every month</span>
+            </div>
+            <div class="plan-price">
+              <strong>฿ 99</strong>
+              <span>every month</span>
+            </div>
+            <div class="plan-check"><i data-lucide="check"></i></div>
+          </label>
+
+          <label class="sub-plan-card">
+            <input type="radio" name="sub_plan" value="weekly">
+            <div class="plan-info">
+              <span class="plan-name">Weekly</span>
+              <span class="plan-sub">billed every week</span>
+            </div>
+            <div class="plan-price">
+              <strong>฿ 29</strong>
+              <span>every week</span>
+            </div>
+            <div class="plan-check"><i data-lucide="check"></i></div>
+          </label>
+        </div>
+
+        <div class="sub-features-list">
+          <h5 class="feature-title">You'll get:</h5>
+          <ul>
+            <li><i data-lucide="check" class="text-emerald"></i> Unlimited Bank Slip OCR scanning</li>
+            <li><i data-lucide="check" class="text-emerald"></i> 200GB Cloud Backup & Sync all devices</li>
+            <li><i data-lucide="check" class="text-emerald"></i> Financial health reports & Excel/PDF export</li>
+            <li><i data-lucide="check" class="text-emerald"></i> Unlimited wallets, budget goals & recurring bills</li>
+          </ul>
+        </div>
+
+        <button class="btn-primary-block" id="btn-confirm-subscribe">Subscribe (Start 7-Day Free Trial)</button>
+      </div>
+    </div>
+
+
+    <!-- 5. FIGMA LOG OUT / PIN CONFIRMATION MODAL (From Figma Bottom Middle) -->
+    <div class="modal-overlay" id="modal-logout-confirm" aria-hidden="true">
+      <div class="modal-card modal-sm text-center">
+        <div class="logout-icon-circle"><i data-lucide="log-out"></i></div>
+        <h3 class="modal-title">Log out</h3>
+        <p class="modal-subtitle mt-2">Are you sure you want to log out? You'll need your PIN or login to open the app again.</p>
+        <div class="modal-actions-pair mt-6">
+          <button class="btn-secondary" id="btn-cancel-logout">Cancel</button>
+          <button class="btn-primary" id="btn-confirm-logout">Log out</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- 6. MODERN AUTHENTICATION MODAL (LOGIN & REGISTER) -->
+    <div class="modal-overlay" id="modal-auth" aria-hidden="true">
+      <div class="modal-card modal-auth-card">
+        <!-- Auth Header -->
+        <div class="auth-header text-center">
+          <button class="modal-close-btn" id="btn-close-auth-modal" title="ปิด"><i data-lucide="x"></i></button>
+          <div class="auth-brand-logo">
+            <i data-lucide="wallet-cards"></i>
+          </div>
+          <h2 class="auth-title">NongOm</h2>
+          <p class="auth-subtitle">Smart Spending & Expense Tracker</p>
+        </div>
+
+        <!-- Auth Mode Segment (Login / Register) -->
+        <div class="auth-tab-segment">
+          <button class="auth-tab-btn active" id="tab-auth-login" type="button">
+            <i data-lucide="log-in"></i> เข้าสู่ระบบ
+          </button>
+          <button class="auth-tab-btn" id="tab-auth-register" type="button">
+            <i data-lucide="user-plus"></i> สมัครสมาชิก
+          </button>
+        </div>
+
+        <!-- Form 1: Login Form -->
+        <form id="form-auth-login" class="auth-form-view active">
+          <div class="form-group">
+            <label class="form-label">ชื่อผู้ใช้หรืออีเมล</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="user" class="input-icon"></i>
+              <input type="text" id="login-username" class="form-input with-icon" value="NongOm" placeholder="กรอกชื่อผู้ใช้หรืออีเมล" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รหัสผ่าน</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" id="login-password" class="form-input with-icon" value="1234" placeholder="กรอกรหัสผ่าน" required>
+              <button type="button" class="btn-toggle-pw" id="btn-toggle-login-pw" title="แสดง/ซ่อนรหัสผ่าน">
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+            <div class="auth-form-helper-row">
+              <label class="checkbox-label-sm">
+                <input type="checkbox" id="login-remember" checked>
+                <span>จดจำการเข้าสู่ระบบ</span>
+              </label>
+              <span class="auth-hint-text">รหัสผ่านเริ่มต้น: <strong>1234</strong></span>
+            </div>
+          </div>
+
+          <div id="login-error-msg" class="pin-error-text" style="display: none;">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+
+          <button type="submit" class="btn-primary-block" id="btn-submit-login">
+            <i data-lucide="log-in"></i> เข้าสู่ระบบ
+          </button>
+
+          <!-- 1-Click Quick Demo Login -->
+          <div class="auth-quick-login-divider">
+            <span>หรือเข้าใช้งานทันที</span>
+          </div>
+          <button type="button" class="btn-quick-demo-login" id="btn-demo-quick-login">
+            <i data-lucide="zap" class="text-amber"></i> <span>เข้าใช้งานด้วยบัญชีตัวอย่าง (1-Click Demo Login)</span>
+          </button>
+        </form>
+
+        <!-- Form 2: Register Form -->
+        <form id="form-auth-register" class="auth-form-view" style="display: none;">
+          <div class="form-group">
+            <label class="form-label">ชื่อของคุณ (Display Name)</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="smile" class="input-icon"></i>
+              <input type="text" id="reg-name" class="form-input with-icon" placeholder="เช่น NongOm" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">อีเมลหรือชื่อผู้ใช้</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="text" id="reg-username" class="form-input with-icon" placeholder="เช่น user@example.com" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รหัสผ่าน</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="lock" class="input-icon"></i>
+              <input type="password" id="reg-password" class="form-input with-icon" placeholder="กำหนดรหัสผ่าน" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">รายได้เฉลี่ยต่อเดือน (บาท)</label>
+            <div class="input-with-icon-wrap">
+              <i data-lucide="wallet" class="input-icon"></i>
+              <input type="number" id="reg-income" class="form-input with-icon" value="65000" placeholder="เช่น 65000" required>
+            </div>
+          </div>
+
+          <div id="reg-error-msg" class="pin-error-text" style="display: none;">กรุณากรอกข้อมูลให้ครบถ้วน</div>
+
+          <div class="auth-btn-wrap mt-4">
+            <button type="submit" class="btn-primary-block" id="btn-submit-register">
+              <i data-lucide="user-plus"></i> สร้างบัญชีและเข้าสู่ระบบทันที
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 7. WALLET ADD/EDIT MODAL -->
+    <div class="modal-overlay" id="modal-wallet" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="wallet-modal-title">เพิ่มกระเป๋าเงิน / บัญชี</h3>
+          <button class="modal-close-btn" id="btn-close-wallet-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-wallet" class="modal-form">
+          <input type="hidden" id="wallet-edit-id" value="">
+          <div class="form-group">
+            <label class="form-label">ชื่อบัญชี / กระเป๋าเงิน</label>
+            <input type="text" id="wallet-name" class="form-input" placeholder="เช่น เงินสด, กสิกรไทย, KTC" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ประเภทบัญชี</label>
+            <select id="wallet-type" class="form-select">
+              <option value="cash">💵 เงินสด (Cash)</option>
+              <option value="bank">🏦 บัญชีธนาคาร (Bank Account)</option>
+              <option value="credit">💳 บัตรเครดิต (Credit Card)</option>
+              <option value="ewallet">📱 e-Wallet / TrueMoney</option>
+              <option value="savings">🎯 บัญชีเงินออม / กองทุน</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ยอดเงินเริ่มต้น</label>
+            <input type="number" step="any" id="wallet-balance" class="form-input" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">สีประจำบัญชี</label>
+            <div class="color-picker-row" id="wallet-color-picker">
+              <label class="color-option active" style="background:#16a34a;"><input type="radio" name="wallet_color" value="#16a34a" checked></label>
+              <label class="color-option" style="background:#2563eb;"><input type="radio" name="wallet_color" value="#2563eb"></label>
+              <label class="color-option" style="background:#9333ea;"><input type="radio" name="wallet_color" value="#9333ea"></label>
+              <label class="color-option" style="background:#ea580c;"><input type="radio" name="wallet_color" value="#ea580c"></label>
+              <label class="color-option" style="background:#0284c7;"><input type="radio" name="wallet_color" value="#0284c7"></label>
+              <label class="color-option" style="background:#e11d48;"><input type="radio" name="wallet_color" value="#e11d48"></label>
+            </div>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-wallet">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึกบัญชี</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 8. TRANSFER MONEY MODAL -->
+    <div class="modal-overlay" id="modal-transfer" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">โอนเงินระหว่างกระเป๋า</h3>
+          <button class="modal-close-btn" id="btn-close-transfer-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-transfer" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">จำนวนเงินที่โอน</label>
+            <input type="number" step="any" id="transfer-amount" class="form-input" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">จากบัญชี (ต้นทาง)</label>
+            <select id="transfer-from-wallet" class="form-select" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ไปยังบัญชี (ปลายทาง)</label>
+            <select id="transfer-to-wallet" class="form-select" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">บันทึกช่วยจำ (ถ้ามี)</label>
+            <input type="text" id="transfer-note" class="form-input" placeholder="เช่น ถอนเงินสดมาใช้, จ่ายบัตรเครดิต">
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-transfer">ยกเลิก</button>
+            <button type="submit" class="btn-primary">ยืนยันการโอน</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 9. BUDGET SETTING MODAL -->
+    <div class="modal-overlay" id="modal-budget" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title" id="budget-modal-title">ตั้งงบประมาณ</h3>
+          <button class="modal-close-btn" id="btn-close-budget-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-budget" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">เลือกหมวดหมู่</label>
+            <select id="budget-category-select" class="form-select" required></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">วงเงินงบประมาณรายเดือน (บาท)</label>
+            <input type="number" step="any" id="budget-limit-amount" class="form-input" placeholder="เช่น 5000" required>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-budget">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึกงบประมาณ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 10. SAVING POT / GOAL MODAL -->
+    <div class="modal-overlay" id="modal-saving-goal" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">เพิ่มเป้าหมายการออมเงิน</h3>
+          <button class="modal-close-btn" id="btn-close-saving-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-saving-goal" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">ชื่อเป้าหมาย</label>
+            <input type="text" id="goal-name" class="form-input" placeholder="เช่น กองทุนฉุกเฉิน, ซื้อมือถือใหม่" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ยอดเป้าหมาย (บาท)</label>
+            <input type="number" step="any" id="goal-target-amount" class="form-input" placeholder="เช่น 20000" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ยอดเงินออมที่มีอยู่แล้ว</label>
+            <input type="number" step="any" id="goal-current-amount" class="form-input" placeholder="0" value="0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่ต้องการทำให้สำเร็จ</label>
+            <input type="date" id="goal-target-date" class="form-input">
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-saving">ยกเลิก</button>
+            <button type="submit" class="btn-primary">สร้างเป้าหมาย</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 11. RECURRING BILL MODAL -->
+    <div class="modal-overlay" id="modal-recurring" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">เพิ่มรายการประจำ (Recurring Bill)</h3>
+          <button class="modal-close-btn" id="btn-close-recurring-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-recurring" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">ชื่อรายการ</label>
+            <input type="text" id="rec-name" class="form-input" placeholder="เช่น Netflix, ค่าเช่าห้อง, เงินเดือน" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ประเภท</label>
+            <select id="rec-type" class="form-select">
+              <option value="expense">รายจ่ายประจำ</option>
+              <option value="income">รายรับประจำ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน</label>
+            <input type="number" step="any" id="rec-amount" class="form-input" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ความถี่</label>
+            <select id="rec-frequency" class="form-select">
+              <option value="monthly">ทุกเดือน</option>
+              <option value="yearly">ทุกปี</option>
+              <option value="weekly">ทุกสัปดาห์</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">วันที่เรียกเก็บถัดไป</label>
+            <input type="date" id="rec-next-date" class="form-input" required>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-recurring">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึกรายการประจำ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 12. DEBT / LOAN MODAL -->
+    <div class="modal-overlay" id="modal-debt" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">บันทึกหนี้สิน / ยืมคืน</h3>
+          <button class="modal-close-btn" id="btn-close-debt-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-debt" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">ประเภทหนี้สิน</label>
+            <select id="debt-type" class="form-select">
+              <option value="lend">เราให้ยืม (คนอื่นติดเรา)</option>
+              <option value="borrow">เรายืมมา (เราติดคนอื่น)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ชื่อบุคคล / แหล่งหนี้</label>
+            <input type="text" id="debt-person" class="form-input" placeholder="เช่น เพื่อนสมชาย, ยืมค่าของ" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">จำนวนเงิน</label>
+            <input type="number" step="any" id="debt-amount" class="form-input" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">กำหนดวันชำระคืน</label>
+            <input type="date" id="debt-due-date" class="form-input">
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-debt">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 13. EDIT PROFILE MODAL -->
+    <div class="modal-overlay" id="modal-edit-profile" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <h3 class="modal-title">แก้ไขโปรไฟล์</h3>
+          <button class="modal-close-btn" id="btn-close-profile-modal"><i data-lucide="x"></i></button>
+        </div>
+        <form id="form-edit-profile" class="modal-form">
+          <div class="form-group">
+            <label class="form-label">ชื่อแสดงผล</label>
+            <input type="text" id="edit-profile-name" class="form-input" value="Name" required>
+          </div>
+          <div class="modal-footer-actions">
+            <button type="button" class="btn-secondary" id="btn-cancel-profile">ยกเลิก</button>
+            <button type="submit" class="btn-primary">บันทึกโปรไฟล์</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 14. EXPORT & REPORT DOWNLOAD MODAL -->
+    <div class="modal-overlay" id="modal-export" aria-hidden="true">
+      <div class="modal-card modal-sm">
+        <div class="modal-header">
+          <div class="modal-title-with-icon">
+            <div class="modal-icon-badge bg-emerald-light text-emerald"><i data-lucide="download"></i></div>
+            <div>
+              <h3 class="modal-title">ส่งออกรายงานการเงิน</h3>
+              <p class="modal-subtitle">เลือกรูปแบบไฟล์ที่ต้องการ</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="btn-close-export-modal"><i data-lucide="x"></i></button>
+        </div>
+        <div class="export-options-list">
+          <button class="export-opt-btn" id="btn-export-excel">
+            <div class="opt-icon bg-emerald-light text-emerald"><i data-lucide="sheet"></i></div>
+            <div class="opt-text">
+              <strong>Excel Spreadsheet (.xlsx)</strong>
+              <span>ดาวน์โหลดรายงานสรุปพร้อมสูตรคำนวณ</span>
+            </div>
+            <i data-lucide="chevron-right" class="chevron"></i>
+          </button>
+          <button class="export-opt-btn" id="btn-export-csv">
+            <div class="opt-icon bg-blue-light text-blue"><i data-lucide="file-text"></i></div>
+            <div class="opt-text">
+              <strong>CSV Data File (.csv)</strong>
+              <span>ไฟล์ข้อมูลมาตรฐาน นำไปใช้ต่อในโปรแกรมอื่น</span>
+            </div>
+            <i data-lucide="chevron-right" class="chevron"></i>
+          </button>
+          <button class="export-opt-btn" id="btn-export-pdf">
+            <div class="opt-icon bg-rose-light text-rose"><i data-lucide="file-pdf"></i></div>
+            <div class="opt-text">
+              <strong>รายงาน PDF รายเดือน (.pdf)</strong>
+              <span>รายงานสวยงามพร้อมพิมพ์หรือเก็บเป็นหลักฐาน</span>
+            </div>
+            <i data-lucide="chevron-right" class="chevron"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Popup -->
+    <div id="toast" class="toast-popup">
+      <i data-lucide="check-circle" id="toast-icon"></i>
+      <span id="toast-message">บันทึกข้อมูลเรียบร้อยแล้ว</span>
+    </div>
+
+  </div>
+
+  <!-- Application Logic Scripts -->
+  <script src="modules/demo-data.js"></script>
+  <script src="modules/slip-ocr.js"></script>
+  <script src="modules/charts.js"></script>
+  <script src="modules/export.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
